@@ -27,8 +27,20 @@ if (!response?.ok) {
   process.exit(0);
 }
 
-const payload = await response.json();
-const source = payload.results || payload.data || payload.recruitments || [];
+let source;
+try {
+  const payload = await response.json();
+  source = payload.results || payload.data || payload.recruitments || [];
+} catch (error) {
+  console.warn(`Keeping the existing jobs.json (invalid JSON): ${error.message}`);
+  process.exit(0);
+}
+
+// 빈 배열이 내려와도 기존 목록을 지우지 않는다
+if (!source.length) {
+  console.warn('Keeping the existing jobs.json because the API returned no jobs.');
+  process.exit(0);
+}
 const text = value => {
   if (!value) return '';
   if (typeof value === 'string') return value;
