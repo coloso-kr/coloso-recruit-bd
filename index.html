@@ -22,8 +22,24 @@
     fetch('./jobs.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).then(({jobs})=>{
       list.innerHTML=jobs.length?jobs.map(j=>`<a class="job" href="${esc(j.url)}" target="_blank" rel="noopener" data-id="${esc(j.id)}"><div><div class="title">${esc(j.title)}</div><div class="meta">${esc([j.group,j.task].filter(Boolean).join(' · '))}</div></div><span class="arrow">↗</span></a>`).join(''):'<div class="status">현재 공개 중인 포지션이 없습니다</div>';
     }).catch(()=>list.innerHTML='<div class="status">채용 공고를 불러오지 못했습니다</div>');
-    list.addEventListener('click',e=>{const a=e.target.closest('.job');if(!a)return;const p=new Image;p.src=CLICK+'?action=click&id='+encodeURIComponent(a.dataset.id)+'&source='+encodeURIComponent(document.referrer||location.href)+'&_='+Date.now()});
+    list.addEventListener('click',e=>{
+      const a=e.target.closest('.job');
+      if(!a)return;
+
+      const logUrl=CLICK
+        +'?action=click'
+        +'&id='+encodeURIComponent(a.dataset.id)
+        +'&source='+encodeURIComponent(document.referrer||location.href)
+        +'&_='+Date.now();
+
+      // 모바일 브라우저에서 새 탭이 열려도 로그 요청이 취소되지 않도록 유지한다.
+      fetch(logUrl,{
+        method:'GET',
+        mode:'no-cors',
+        cache:'no-store',
+        keepalive:true
+      }).catch(()=>{});
+    });
   </script>
 </body>
 </html>
-
