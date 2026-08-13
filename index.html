@@ -18,8 +18,12 @@
   <script>
     const CLICK='https://script.google.com/macros/s/AKfycbzn1MpbhJuVZCqnmzUXHj7VoBAxObbhlyA9X7PwI1rfdMRE64m6Ajdh17ySGxMvx8jLww/exec';
     const list=document.getElementById('list');
-    const clickPixels=new Set();
     const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    const trackedUrl=j=>CLICK
+      +'?action=click'
+      +'&id='+encodeURIComponent(j.id)
+      +'&source='+encodeURIComponent(document.referrer||'콜로소 채용 브랜딩 페이지')
+      +'&url='+encodeURIComponent(j.url);
     const reportHeight=()=>{
       const height=Math.ceil(Math.max(
         list.getBoundingClientRect().height,
@@ -31,31 +35,12 @@
     new ResizeObserver(reportHeight).observe(list);
     addEventListener('load',reportHeight);
     fetch('./jobs.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).then(({jobs})=>{
-      list.innerHTML=jobs.length?jobs.map(j=>`<a class="job" href="${esc(j.url)}" target="_blank" rel="noopener" data-id="${esc(j.id)}"><div><div class="title">${esc(j.title)}</div><div class="meta">${esc([j.group,j.task].filter(Boolean).join(' · '))}</div></div><span class="arrow">↗</span></a>`).join(''):'<div class="status">현재 공개 중인 포지션이 없습니다</div>';
+      list.innerHTML=jobs.length?jobs.map(j=>`<a class="job" href="${esc(trackedUrl(j))}" target="_blank" rel="noopener"><div><div class="title">${esc(j.title)}</div><div class="meta">${esc([j.group,j.task].filter(Boolean).join(' · '))}</div></div><span class="arrow">↗</span></a>`).join(''):'<div class="status">현재 공개 중인 포지션이 없습니다</div>';
       requestAnimationFrame(()=>requestAnimationFrame(reportHeight));
       setTimeout(reportHeight,300);
     }).catch(()=>{
       list.innerHTML='<div class="status">채용 공고를 불러오지 못했습니다</div>';
       requestAnimationFrame(reportHeight);
-    });
-    list.addEventListener('click',e=>{
-      const a=e.target.closest('.job');
-      if(!a)return;
-
-      const logUrl=CLICK
-        +'?action=click'
-        +'&id='+encodeURIComponent(a.dataset.id)
-        +'&source='+encodeURIComponent(document.referrer||location.href)
-        +'&_='+Date.now();
-
-      // Safari에서도 전송이 끝날 때까지 추적 픽셀 객체를 메모리에 유지한다.
-      const pixel=new Image();
-      clickPixels.add(pixel);
-      const release=()=>clickPixels.delete(pixel);
-      pixel.onload=release;
-      pixel.onerror=release;
-      pixel.src=logUrl;
-
     });
   </script>
 </body>
