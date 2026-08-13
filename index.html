@@ -19,12 +19,24 @@
     const CLICK='https://script.google.com/macros/s/AKfycbzn1MpbhJuVZCqnmzUXHj7VoBAxObbhlyA9X7PwI1rfdMRE64m6Ajdh17ySGxMvx8jLww/exec';
     const list=document.getElementById('list');
     const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    const reportHeight=()=>parent.postMessage({type:'coloso-recruit-height',height:document.documentElement.scrollHeight},'*');
-    new ResizeObserver(reportHeight).observe(document.body);
+    const reportHeight=()=>{
+      const height=Math.ceil(Math.max(
+        list.getBoundingClientRect().height,
+        list.scrollHeight,
+        document.body.scrollHeight
+      ));
+      parent.postMessage({type:'coloso-recruit-height',height},'*');
+    };
+    new ResizeObserver(reportHeight).observe(list);
     addEventListener('load',reportHeight);
     fetch('./jobs.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).then(({jobs})=>{
       list.innerHTML=jobs.length?jobs.map(j=>`<a class="job" href="${esc(j.url)}" target="_blank" rel="noopener" data-id="${esc(j.id)}"><div><div class="title">${esc(j.title)}</div><div class="meta">${esc([j.group,j.task].filter(Boolean).join(' · '))}</div></div><span class="arrow">↗</span></a>`).join(''):'<div class="status">현재 공개 중인 포지션이 없습니다</div>';
-    }).catch(()=>list.innerHTML='<div class="status">채용 공고를 불러오지 못했습니다</div>');
+      requestAnimationFrame(()=>requestAnimationFrame(reportHeight));
+      setTimeout(reportHeight,300);
+    }).catch(()=>{
+      list.innerHTML='<div class="status">채용 공고를 불러오지 못했습니다</div>';
+      requestAnimationFrame(reportHeight);
+    });
     list.addEventListener('click',e=>{
       const a=e.target.closest('.job');
       if(!a)return;

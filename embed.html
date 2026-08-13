@@ -19,7 +19,7 @@
   if (!frame) return;
   window.addEventListener('message', event => {
     if (event.origin !== 'https://coloso-kr.github.io') return;
-    if (event.data?.type !== 'coloso-recruit-height') return;
+    if (!event.data || event.data.type !== 'coloso-recruit-height') return;
     const height = Math.max(0, Number(event.data.height) || 0);
     if (height) frame.style.height = height + 'px';
   });
