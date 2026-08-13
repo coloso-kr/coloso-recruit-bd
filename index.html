@@ -11,19 +11,65 @@
     .job:hover{background:rgba(49,92,255,.18);border-bottom-color:#3d6bff}.title{font-size:15px;font-weight:700;line-height:1.4;word-break:keep-all}
     .meta{margin-top:4px;color:rgba(255,255,255,.5);font-size:11px;line-height:1.45}.arrow{color:#3d6bff;font-size:18px}.status{padding:18px;text-align:center;color:rgba(255,255,255,.55);font-size:13px;background:rgba(74,74,74,.2)}
     @media(max-width:640px){.job{padding:13px 14px}.title{font-size:14px}.meta{font-size:10.5px}}
+    #debug{position:fixed;right:8px;bottom:8px;z-index:9999;max-width:92vw;padding:9px 11px;border-radius:6px;background:rgba(0,0,0,.86);color:#7CFFB2;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.5;white-space:pre-wrap;pointer-events:none}
   </style>
 </head>
 <body>
   <main class="list" id="list"><div class="status">채용 중인 포지션을 불러오고 있습니다</div></main>
   <script>
     const CLICK='https://script.google.com/macros/s/AKfycbzn1MpbhJuVZCqnmzUXHj7VoBAxObbhlyA9X7PwI1rfdMRE64m6Ajdh17ySGxMvx8jLww/exec';
+    const SOURCE='콜로소 채용 브랜딩 페이지';
+    const DEBUG=/[?&]debug=1/.test(location.search);
     const list=document.getElementById('list');
     const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    const trackedUrl=j=>CLICK
-      +'?action=click'
-      +'&id='+encodeURIComponent(j.id)
-      +'&source='+encodeURIComponent(document.referrer||'콜로소 채용 브랜딩 페이지')
-      +'&url='+encodeURIComponent(j.url);
+
+    /* 모바일 진단용 토스트 (?debug=1 일 때만) */
+    const debugLog=msg=>{
+      if(!DEBUG)return;
+      let box=document.getElementById('debug');
+      if(!box){box=document.createElement('div');box.id='debug';document.body.appendChild(box);}
+      box.textContent=msg;
+    };
+
+    /*
+     * 클릭 로그 전송
+     *
+     * sendBeacon은 요청을 렌더러가 아닌 브라우저 프로세스로 넘긴다.
+     * 새 탭이 열려 이 페이지가 정지(suspend)되거나 종료돼도 전송이 완료된다.
+     * keepalive fetch와 트래킹 픽셀이 모바일에서 실패했던 지점.
+     */
+    const sendClick=job=>{
+      const payload=JSON.stringify({
+        job_id:job.id,
+        job_title:job.title,
+        link_url:job.url,
+        source:SOURCE,
+        referrer:document.referrer||'',
+        ua:navigator.userAgent
+      });
+
+      if(navigator.sendBeacon){
+        try{
+          const blob=new Blob([payload],{type:'text/plain;charset=UTF-8'});
+          if(navigator.sendBeacon(CLICK,blob)){debugLog('beacon OK\n'+job.title);return;}
+          debugLog('beacon false → fetch 폴백');
+        }catch(e){debugLog('beacon 예외 → fetch 폴백\n'+e.message);}
+      }else{
+        debugLog('sendBeacon 미지원 → fetch 폴백');
+      }
+
+      if(window.fetch){
+        fetch(CLICK,{
+          method:'POST',body:payload,mode:'no-cors',keepalive:true,
+          headers:{'Content-Type':'text/plain;charset=UTF-8'}
+        }).catch(()=>{});
+        return;
+      }
+
+      new Image().src=CLICK+'?action=click&id='+encodeURIComponent(job.id)
+        +'&source='+encodeURIComponent(SOURCE)+'&_='+Date.now();
+    };
+
     const reportHeight=()=>{
       const height=Math.ceil(Math.max(
         list.getBoundingClientRect().height,
@@ -34,13 +80,28 @@
     };
     new ResizeObserver(reportHeight).observe(list);
     addEventListener('load',reportHeight);
+
+    let JOBS=[];
+
+    /* 이벤트 위임: 목록이 다시 그려져도 리스너를 새로 붙일 필요가 없다 */
+    list.addEventListener('click',event=>{
+      const link=event.target.closest('.job');
+      if(!link||!link.dataset.id)return;
+      const job=JOBS.find(j=>String(j.id)===link.dataset.id);
+      if(job)sendClick(job);
+    });
+
     fetch('./jobs.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).then(({jobs})=>{
-      list.innerHTML=jobs.length?jobs.map(j=>`<a class="job" href="${esc(trackedUrl(j))}" target="_blank" rel="noopener"><div><div class="title">${esc(j.title)}</div><div class="meta">${esc([j.group,j.task].filter(Boolean).join(' · '))}</div></div><span class="arrow">↗</span></a>`).join(''):'<div class="status">현재 공개 중인 포지션이 없습니다</div>';
+      JOBS=jobs;
+      /* href는 나인하이어 직결. GAS를 경유하지 않으므로 리다이렉트 차단 문제가 없다. */
+      list.innerHTML=jobs.length?jobs.map(j=>`<a class="job" href="${esc(j.url)}" target="_blank" rel="noopener" data-id="${esc(j.id)}"><div><div class="title">${esc(j.title)}</div><div class="meta">${esc([j.group,j.task].filter(Boolean).join(' · '))}</div></div><span class="arrow">↗</span></a>`).join(''):'<div class="status">현재 공개 중인 포지션이 없습니다</div>';
       requestAnimationFrame(()=>requestAnimationFrame(reportHeight));
       setTimeout(reportHeight,300);
+      debugLog('공고 '+jobs.length+'건\nsendBeacon '+(navigator.sendBeacon?'지원':'미지원'));
     }).catch(()=>{
       list.innerHTML='<div class="status">채용 공고를 불러오지 못했습니다</div>';
       requestAnimationFrame(reportHeight);
+      debugLog('jobs.json 로드 실패');
     });
   </script>
 </body>
