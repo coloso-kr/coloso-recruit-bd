@@ -71,7 +71,13 @@
 </style>
 
 <div id="coloso-jobs">
-  <div class="coloso-job-status">채용 중인 포지션을 불러오고 있습니다</div>
+  <!-- FastComposer가 비동기 로딩 전에도 전체 목록 높이를 계산하도록 6줄을 먼저 확보 -->
+  <div class="coloso-job coloso-job-placeholder"><div><div class="coloso-job-title">채용 중인 포지션을 불러오고 있습니다</div></div><span></span></div>
+  <div class="coloso-job coloso-job-placeholder" aria-hidden="true"><div><div class="coloso-job-title">&nbsp;</div></div><span></span></div>
+  <div class="coloso-job coloso-job-placeholder" aria-hidden="true"><div><div class="coloso-job-title">&nbsp;</div></div><span></span></div>
+  <div class="coloso-job coloso-job-placeholder" aria-hidden="true"><div><div class="coloso-job-title">&nbsp;</div></div><span></span></div>
+  <div class="coloso-job coloso-job-placeholder" aria-hidden="true"><div><div class="coloso-job-title">&nbsp;</div></div><span></span></div>
+  <div class="coloso-job coloso-job-placeholder" aria-hidden="true"><div><div class="coloso-job-title">&nbsp;</div></div><span></span></div>
 </div>
 
 <script>
