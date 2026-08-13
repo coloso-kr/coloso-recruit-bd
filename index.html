@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>콜로소 채용 중인 포지션</title>
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;background:transparent;color:#fff;font-family:"Noto Sans KR",Arial,sans-serif}
+    body{padding:0 0 60px}.list{width:100%;border-top:1px solid rgba(255,255,255,.18)}
+    .job{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.18);background:rgba(74,74,74,.22);color:inherit;text-decoration:none;transition:.2s ease}
+    .job:hover{background:rgba(49,92,255,.18);border-bottom-color:#3d6bff}.title{font-size:15px;font-weight:700;line-height:1.4;word-break:keep-all}
+    .meta{margin-top:4px;color:rgba(255,255,255,.5);font-size:11px;line-height:1.45}.arrow{color:#3d6bff;font-size:18px}.status{padding:18px;text-align:center;color:rgba(255,255,255,.55);font-size:13px;background:rgba(74,74,74,.2)}
+    @media(max-width:640px){.job{padding:13px 14px}.title{font-size:14px}.meta{font-size:10.5px}}
+  </style>
+</head>
+<body>
+  <main class="list" id="list"><div class="status">채용 중인 포지션을 불러오고 있습니다</div></main>
+  <script>
+    const CLICK='https://script.google.com/macros/s/AKfycbzn1MpbhJuVZCqnmzUXHj7VoBAxObbhlyA9X7PwI1rfdMRE64m6Ajdh17ySGxMvx8jLww/exec';
+    const list=document.getElementById('list');
+    const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    fetch('./jobs.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error(r.status);return r.json()}).then(({jobs})=>{
+      list.innerHTML=jobs.length?jobs.map(j=>`<a class="job" href="${esc(j.url)}" target="_blank" rel="noopener" data-id="${esc(j.id)}"><div><div class="title">${esc(j.title)}</div><div class="meta">${esc([j.group,j.task].filter(Boolean).join(' · '))}</div></div><span class="arrow">↗</span></a>`).join(''):'<div class="status">현재 공개 중인 포지션이 없습니다</div>';
+    }).catch(()=>list.innerHTML='<div class="status">채용 공고를 불러오지 못했습니다</div>');
+    list.addEventListener('click',e=>{const a=e.target.closest('.job');if(!a)return;const p=new Image;p.src=CLICK+'?action=click&id='+encodeURIComponent(a.dataset.id)+'&source='+encodeURIComponent(document.referrer||location.href)+'&_='+Date.now()});
+  </script>
+</body>
+</html>
+
