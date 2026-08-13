@@ -49,4 +49,9 @@ const jobs = source
   }));
 
 await writeFile('jobs.json', JSON.stringify({ updatedAt: new Date().toISOString(), jobs }, null, 2) + '\n', 'utf8');
+await writeFile(
+  'jobs-data.js',
+  `window.COLOSO_RECRUIT_JOBS=${JSON.stringify(jobs)};\n`,
+  'utf8'
+);
 console.log(`Saved ${jobs.length} Coloso jobs`);
