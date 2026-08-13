@@ -88,10 +88,11 @@
 
   const DATA = 'https://coloso-kr.github.io/coloso-recruit-bd/jobs.json';
   const CLICK = 'https://script.google.com/macros/s/AKfycbzn1MpbhJuVZCqnmzUXHj7VoBAxObbhlyA9X7PwI1rfdMRE64m6Ajdh17ySGxMvx8jLww/exec';
-  const clickPixels = new Set();
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
   })[char]);
+
+  let JOBS = [];
 
   fetch(DATA, { cache:'no-store' })
     .then(response => {
@@ -100,6 +101,7 @@
     })
     .then(data => {
       const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+      JOBS = jobs;
       root.innerHTML = jobs.length
         ? jobs.map(job => `
           <a class="coloso-job"
@@ -119,23 +121,48 @@
       root.innerHTML = '<div class="coloso-job-status">채용 공고를 불러오지 못했습니다</div>';
     });
 
+  /*
+   * 클릭 로그 전송
+   *
+   * sendBeacon은 요청을 렌더러가 아닌 브라우저 프로세스로 넘긴다.
+   * 새 탭이 열려 이 페이지가 정지(suspend)돼도 전송이 완료된다.
+   * 기존 트래킹 픽셀은 렌더러가 멈추면 함께 취소돼 모바일에서 누락됐다.
+   */
   root.addEventListener('click', event => {
     const link = event.target.closest('.coloso-job');
-    if (!link) return;
+    if (!link || !link.dataset.id) return;
 
-    const logUrl = CLICK
-      + '?action=click'
-      + '&id=' + encodeURIComponent(link.dataset.id)
+    const job = JOBS.find(j => String(j.id) === link.dataset.id);
+    if (!job) return;
+
+    const payload = JSON.stringify({
+      job_id: job.id,
+      job_title: job.title,
+      link_url: job.url,
+      source: location.href,
+      referrer: document.referrer || '',
+      ua: navigator.userAgent
+    });
+
+    if (navigator.sendBeacon) {
+      try {
+        const blob = new Blob([payload], { type:'text/plain;charset=UTF-8' });
+        if (navigator.sendBeacon(CLICK, blob)) return;
+      } catch (error) { /* 폴백으로 진행 */ }
+    }
+
+    if (window.fetch) {
+      fetch(CLICK, {
+        method:'POST', body:payload, mode:'no-cors', keepalive:true,
+        headers:{ 'Content-Type':'text/plain;charset=UTF-8' }
+      }).catch(() => {});
+      return;
+    }
+
+    new Image().src = CLICK
+      + '?action=click&id=' + encodeURIComponent(job.id)
       + '&source=' + encodeURIComponent(location.href)
       + '&_=' + Date.now();
-
-    const pixel = new Image();
-    clickPixels.add(pixel);
-    const release = () => clickPixels.delete(pixel);
-    pixel.onload = release;
-    pixel.onerror = release;
-    pixel.src = logUrl;
-
   });
 })();
 </script>
