@@ -18,6 +18,7 @@
   <script>
     const CLICK='https://script.google.com/macros/s/AKfycbzn1MpbhJuVZCqnmzUXHj7VoBAxObbhlyA9X7PwI1rfdMRE64m6Ajdh17ySGxMvx8jLww/exec';
     const list=document.getElementById('list');
+    const clickPixels=new Set();
     const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     const reportHeight=()=>{
       const height=Math.ceil(Math.max(
@@ -47,13 +48,14 @@
         +'&source='+encodeURIComponent(document.referrer||location.href)
         +'&_='+Date.now();
 
-      // 모바일 브라우저에서 새 탭이 열려도 로그 요청이 취소되지 않도록 유지한다.
-      fetch(logUrl,{
-        method:'GET',
-        mode:'no-cors',
-        cache:'no-store',
-        keepalive:true
-      }).catch(()=>{});
+      // Safari에서도 전송이 끝날 때까지 추적 픽셀 객체를 메모리에 유지한다.
+      const pixel=new Image();
+      clickPixels.add(pixel);
+      const release=()=>clickPixels.delete(pixel);
+      pixel.onload=release;
+      pixel.onerror=release;
+      pixel.src=logUrl;
+
     });
   </script>
 </body>

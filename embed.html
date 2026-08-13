@@ -1,27 +1,135 @@
-<!-- 콜로소 홈페이지 직접 편집 영역에 삽입 -->
-<div id="coloso-recruit-board">
-  <iframe
-    src="https://coloso-kr.github.io/coloso-recruit-bd/"
-    title="콜로소 채용 중인 포지션"
-    scrolling="no"
-    loading="eager"
-  ></iframe>
-</div>
-
+<!-- 콜로소 채용 공고 자동 리스트: iframe 없이 콘텐츠 높이에 자동 맞춤 -->
 <style>
-  #coloso-recruit-board { width:100%; margin:0; padding:0; overflow:hidden; }
-  #coloso-recruit-board iframe { display:block; width:100%; height:80px; margin:0; padding:0; border:0; background:transparent; overflow:hidden; }
+  #coloso-jobs,
+  #coloso-jobs * { box-sizing: border-box; }
+
+  #coloso-jobs {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid rgba(255,255,255,.18);
+    background: transparent;
+    color: #fff;
+    font-family: "Noto Sans KR", Arial, sans-serif;
+  }
+
+  #coloso-jobs .coloso-job {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    gap: 16px;
+    align-items: center;
+    width: 100%;
+    margin: 0;
+    padding: 14px 18px;
+    border: 0;
+    border-bottom: 1px solid rgba(255,255,255,.18);
+    background: rgba(74,74,74,.22);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color .2s ease, border-color .2s ease;
+  }
+
+  #coloso-jobs .coloso-job:hover,
+  #coloso-jobs .coloso-job:active {
+    background: rgba(49,92,255,.18);
+    border-bottom-color: #3d6bff;
+  }
+
+  #coloso-jobs .coloso-job-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+    word-break: keep-all;
+  }
+
+  #coloso-jobs .coloso-job-meta {
+    margin-top: 4px;
+    color: rgba(255,255,255,.5);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  #coloso-jobs .coloso-job-arrow {
+    color: #3d6bff;
+    font-size: 18px;
+  }
+
+  #coloso-jobs .coloso-job-status {
+    margin: 0;
+    padding: 18px;
+    background: rgba(74,74,74,.2);
+    color: rgba(255,255,255,.55);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  @media (max-width:640px) {
+    #coloso-jobs .coloso-job { padding: 13px 14px; }
+    #coloso-jobs .coloso-job-title { font-size: 14px; }
+    #coloso-jobs .coloso-job-meta { font-size: 10.5px; }
+  }
 </style>
+
+<div id="coloso-jobs">
+  <div class="coloso-job-status">채용 중인 포지션을 불러오고 있습니다</div>
+</div>
 
 <script>
 (() => {
-  const frame = document.querySelector('#coloso-recruit-board iframe');
-  if (!frame) return;
-  window.addEventListener('message', event => {
-    if (event.origin !== 'https://coloso-kr.github.io') return;
-    if (!event.data || event.data.type !== 'coloso-recruit-height') return;
-    const height = Math.max(0, Number(event.data.height) || 0);
-    if (height) frame.style.height = height + 'px';
+  const root = document.getElementById('coloso-jobs');
+  if (!root || root.dataset.loaded) return;
+  root.dataset.loaded = 'true';
+
+  const DATA = 'https://coloso-kr.github.io/coloso-recruit-bd/jobs.json';
+  const CLICK = 'https://script.google.com/macros/s/AKfycbzn1MpbhJuVZCqnmzUXHj7VoBAxObbhlyA9X7PwI1rfdMRE64m6Ajdh17ySGxMvx8jLww/exec';
+  const clickPixels = new Set();
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[char]);
+
+  fetch(DATA, { cache:'no-store' })
+    .then(response => {
+      if (!response.ok) throw new Error(String(response.status));
+      return response.json();
+    })
+    .then(data => {
+      const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+      root.innerHTML = jobs.length
+        ? jobs.map(job => `
+          <a class="coloso-job"
+             href="${esc(job.url)}"
+             target="_blank"
+             rel="noopener"
+             data-id="${esc(job.id)}">
+            <div>
+              <div class="coloso-job-title">${esc(job.title)}</div>
+              <div class="coloso-job-meta">${esc([job.group,job.task].filter(Boolean).join(' · '))}</div>
+            </div>
+            <span class="coloso-job-arrow">↗</span>
+          </a>`).join('')
+        : '<div class="coloso-job-status">현재 공개 중인 포지션이 없습니다</div>';
+    })
+    .catch(() => {
+      root.innerHTML = '<div class="coloso-job-status">채용 공고를 불러오지 못했습니다</div>';
+    });
+
+  root.addEventListener('click', event => {
+    const link = event.target.closest('.coloso-job');
+    if (!link) return;
+
+    const logUrl = CLICK
+      + '?action=click'
+      + '&id=' + encodeURIComponent(link.dataset.id)
+      + '&source=' + encodeURIComponent(location.href)
+      + '&_=' + Date.now();
+
+    const pixel = new Image();
+    clickPixels.add(pixel);
+    const release = () => clickPixels.delete(pixel);
+    pixel.onload = release;
+    pixel.onerror = release;
+    pixel.src = logUrl;
+
   });
 })();
 </script>
