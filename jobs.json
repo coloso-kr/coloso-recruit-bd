@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-19T02:20:05.310Z",
+  "updatedAt": "2026-08-20T02:19:09.379Z",
   "jobs": [
     {
       "id": "56e67d50-95f8-11f1-93d1-93ce2b2ecbe4",
@@ -50,6 +50,16 @@
       "career": "",
       "url": "https://day1company.ninehire.site/job_posting/FKqbPwMh",
       "createdAt": "2026-06-16T00:20:49.000Z"
+    },
+    {
+      "id": "02a62a30-4786-11f1-84a1-8992ad144103",
+      "title": "[콜로소][파견직]디자이너 어시스턴트",
+      "group": "디자인",
+      "task": "디자인 어시스턴트",
+      "employment": "dispatched",
+      "career": "",
+      "url": "https://day1company.ninehire.site/job_posting/fahzb4Po",
+      "createdAt": "2026-05-04T07:28:50.000Z"
     },
     {
       "id": "2c152310-94f0-11f0-9cd3-2ba33f77ae3c",
